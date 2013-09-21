@@ -1,0 +1,64 @@
+<html>
+<head>
+<!-- see https://github.com/antimatter15/jsgif -->
+<script type="text/javascript" src="LZWEncoder.js"></script>
+<script type="text/javascript" src="NeuQuant.js"></script>
+<script type="text/javascript" src="GIFEncoder.js"></script>
+<script type="text/javascript" src="pendulum.js" ></script>
+<script type="text/javascript" src="b64.js"></script> 
+<script type="text/javascript">
+function doit()
+{
+    var canvas = document.getElementById('pendulum-canvas');
+    var pendulum = createPendulum();
+    var fps = 30;
+    var dt = 1.0/fps;
+
+    var encoder = new GIFEncoder();
+    encoder.setRepeat(0); //auto-loop
+    encoder.setDelay(dt*1000);
+    encoder.start();
+    
+    function bkgdfunc(ctx,x,y,w,h) 
+    {
+        ctx.fillStyle = "#ffffff";  
+        ctx.fillRect(x,y,w,h);
+    }    
+    
+    function tick()
+    {
+        pendulum.update(dt);
+        pendulum.draw(canvas, bkgdfunc);
+    } 
+    var i = 0;
+    var nframes = 500;
+    setInterval(function() {
+        tick();
+        document.getElementById('count').textContent = ''+i;
+        if (i < nframes)
+        {
+            var ctx = canvas.getContext('2d');
+            encoder.addFrame(ctx); 
+        }
+        else if (i == nframes)
+        {
+            encoder.finish();
+            document.getElementById('gif').src = 'data:image/gif;base64,'+encode64(encoder.stream().getData());    
+        }
+        ++i;
+    }, dt*1000);
+}
+
+window.onload = doit;
+</script>
+</head>
+<body>
+    <div>
+    <canvas id="pendulum-canvas" height="300" width="400" />
+    </div>
+    <p id="count" />
+    <div>
+    <img id='gif' height='300' width='400'/>
+    </div>
+</body>
+</html>
