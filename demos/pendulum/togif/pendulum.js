@@ -67,13 +67,15 @@ function timestep(pendulum, etc, dt)
     simulateCoils(etc, sth, cth > 0 ? 1 : 0, dt);
 }
 
-function _draw(canvas, pendulum, backgrounddraw) {
+function _draw(canvas, pendulum, opt) {
     var ctx = canvas.getContext('2d');
     // Wipe canvas
     var cw = canvas.width;
     var ch = canvas.height;
-    if (backgrounddraw != null)
-        backgrounddraw(ctx,0,0,cw,ch);
+    if (opt == null)
+        opt = {}
+    if (opt.backgrounddraw != null)
+        opt.backgrounddraw(ctx,0,0,cw,ch);
     else
         ctx.clearRect(0, 0, cw, ch);
     var xc = cw/2;
@@ -87,8 +89,9 @@ function _draw(canvas, pendulum, backgrounddraw) {
     var y = yc + pr * cth;
     
     // Draw the box
-    ctx.strokeStyle = '#4080a0';
-    ctx.fillStyle = '#80c0e0';
+    var opacity = opt.opacity || 1.0;
+    ctx.strokeStyle = 'rgba(64,128,160,'+opacity+')';
+    ctx.fillStyle = 'rgba(128,192,224,'+opacity+')';
     
     var h = 8;
     ctx.fillRect(cw*0.1,h,cw*0.8*etc.showcoils(0),h);
@@ -109,10 +112,8 @@ function _draw(canvas, pendulum, backgrounddraw) {
 
     ctx.beginPath();    
     ctx.arc(x, y, pendulum.radius, 0, 2 * Math.PI, false);
-    ctx.fillStyle = '#80c0e0';
     ctx.fill();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = '#4080a0';
     ctx.stroke();
 }
 
@@ -148,7 +149,7 @@ var etc = (function(){
 return {pendulum: pendulum,
         etc: etc,
         update: function(dt) { timestep(pendulum, etc, dt); },
-        draw: function(canvas, bkgdf) { _draw(canvas, pendulum, bkgdf); }
+        draw: function(canvas, opt) { _draw(canvas, pendulum, opt); }
        };
 
 }
