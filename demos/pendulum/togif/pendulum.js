@@ -38,7 +38,7 @@ function simulateCoils(etc, sth, which, dt)
     {
         if (etc.coils[which] < 0)
         {
-            etc.coiltorque = etc.coilstrength;
+            etc.coiltorque = which ? etc.coilstrength : -etc.coilstrength;
         }
         else
         {
@@ -135,9 +135,9 @@ var etc = (function(){
     etc.damping = 0.01;
     etc.dampingmagnet = 1.25;
     etc.coiltorque = 0;
-    etc.coilstrength = 102;
-    etc.coilcapture = 0.05;
-    etc.coilthreshold = 1;
+    etc.coilstrength = 105;
+    etc.coilcapture = 0.08;
+    etc.coilthreshold = 1.3;
     etc.coils = [0,0];
     etc.showcoils = function(i) { 
         var c = this.coils[i] / this.coilthreshold;

@@ -28,13 +28,15 @@ function doit()
     function tick()
     {
         var nop = function(){};
-        pendulum.update(dt*0.5);
+        pendulum.update(dt*0.25);
+        pendulum.update(dt*0.25);
         pendulum.draw(canvas, {backgrounddraw: bkgdfunc, opacity: 0.05});
-        pendulum.update(dt*0.5);
+        pendulum.update(dt*0.25);
+        pendulum.update(dt*0.25);
         pendulum.draw(canvas, {backgrounddraw: nop});
     } 
     var i = 0;
-    var nframes = 1000;
+    var nframes = 1225;
     setInterval(function() {
         tick();
         document.getElementById('count').textContent = ''+i;
