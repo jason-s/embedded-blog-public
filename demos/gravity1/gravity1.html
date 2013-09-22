@@ -6,13 +6,18 @@ window.onload = function() {
     var canvas = document.getElementById('gravity1-canvas');
     var gravity1 = new Gravity1Simulation();
     var fps = 20;
-    var i = 0;
+    var tick = 0;
     var k = 16;
     var dtsim = 1.0/k/fps;
     setInterval(function() {
+        ++tick;
         for (var i = 0; i < k; ++i)
             gravity1.update(dtsim);
         gravity1.draw(canvas);
+        var ctx = canvas.getContext('2d');
+        ctx.strokeStyle = '#ff0000';
+        gravity1.drawOrbitPath(canvas);
+        ctx.stroke();
     }, 1000/fps)
 }
 </script>
