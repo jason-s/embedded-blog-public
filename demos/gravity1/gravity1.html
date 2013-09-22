@@ -1,0 +1,23 @@
+<html>
+<head>
+<script type="text/javascript" src="gravity1.js" ></script>
+<script type="text/javascript">
+window.onload = function() {
+    var canvas = document.getElementById('gravity1-canvas');
+    var gravity1 = new Gravity1Simulation();
+    var fps = 20;
+    var i = 0;
+    var k = 16;
+    var dtsim = 1.0/k/fps;
+    setInterval(function() {
+        for (var i = 0; i < k; ++i)
+            gravity1.update(dtsim);
+        gravity1.draw(canvas);
+    }, 1000/fps)
+}
+</script>
+</head>
+<body>
+    <canvas id="gravity1-canvas" height="480" width="640" />
+</body>
+</html>
