@@ -9,8 +9,38 @@ window.onload = function() {
     var tick = 0;
     var k = 16;
     var dtsim = 1.0/k/fps;
+    var keymap = {37: 'left', 38: 'up', 39: 'right', 40: 'down'};
+    var keystate = {'up':false, 'down':false, 'left':false, 'right':false};
+    function modkey(keycode,isdown)
+    {
+        if (keycode in keymap)
+        {
+            keystate[keymap[keycode]] = isdown;
+            console.log(keystate);
+            return true;
+        }
+        else
+            return false;
+    }    
+    document.addEventListener('keydown',function(event) { if (modkey(event.keyCode, true)) { event.preventDefault(true); return false;} });
+    document.addEventListener('keyup',function(event) { if (modkey(event.keyCode, false)) {  event.preventDefault(true); return false;} });
+    function settextvalue(id,value)
+    {
+        document.getElementById(id).textContent = ''+value.toFixed(3);
+    }
+    function showStatistics(sim)
+    {
+        settextvalue('speed',sim.getSpeed());
+        settextvalue('radius',sim.getRadius());
+        settextvalue('angmomentum',sim.getAngularMomentum());
+        settextvalue('eccentricity',sim.getEccentricity());
+        var ke = sim.getKineticEnergy();
+        var pe = sim.getPotentialEnergy();
+        settextvalue('total energy',ke+pe);
+    }
     setInterval(function() {
         ++tick;
+        gravity1.thruster(keystate,k*dtsim);
         for (var i = 0; i < k; ++i)
             gravity1.update(dtsim);
         gravity1.draw(canvas);
@@ -18,11 +48,21 @@ window.onload = function() {
         ctx.strokeStyle = '#ff0000';
         gravity1.drawOrbitPath(canvas);
         ctx.stroke();
+        showStatistics(gravity1);
     }, 1000/fps)
 }
 </script>
 </head>
 <body>
+    <div>
     <canvas id="gravity1-canvas" height="480" width="640" />
+    </div>
+    <div>
+        <p>Speed = <span id='speed'></span></p>
+        <p>Radius = <span id='radius'></span></p>
+        <p>Angular momentum = <span id='angmomentum'></span></p>
+        <p>Eccentricity = <span id='eccentricity'></span></p>
+        <p>Total energy = <span id='total energy'></span></p>
+    </div>
 </body>
 </html>
