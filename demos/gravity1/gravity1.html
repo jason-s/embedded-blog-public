@@ -1,22 +1,30 @@
 <html>
 <head>
+<style type="text/css">
+    div#statistics p {
+        font-family: sans-serif;
+        padding: 0;
+        margin: 0;
+    }
+</style>
 <script type="text/javascript" src="gravity1.js" ></script>
 <script type="text/javascript">
 window.onload = function() {
     var canvas = document.getElementById('gravity1-canvas');
     var gravity1 = new Gravity1Simulation();
+    window.gravity1 = gravity1;
     var fps = 20;
     var tick = 0;
     var k = 16;
     var dtsim = 1.0/k/fps;
-    var keymap = {37: 'left', 38: 'up', 39: 'right', 40: 'down'};
-    var keystate = {'up':false, 'down':false, 'left':false, 'right':false};
+    var keymap = {37: 'left', 38: 'up', 39: 'right', 40: 'down', 73: 'e+', 74:'E-', 75:'e-', 76:'E+'};
+    var keystate = {'up':false, 'down':false, 'left':false, 'right':false, 'e+':false, 'e-': false, 'E+':false, 'E-':false};
     function modkey(keycode,isdown)
     {
         if (keycode in keymap)
         {
             keystate[keymap[keycode]] = isdown;
-            console.log(keystate);
+            //console.log(keystate);
             return true;
         }
         else
@@ -26,30 +34,43 @@ window.onload = function() {
     document.addEventListener('keyup',function(event) { if (modkey(event.keyCode, false)) {  event.preventDefault(true); return false;} });
     function settextvalue(id,value)
     {
-        document.getElementById(id).textContent = ''+value.toFixed(3);
+        var s = isNaN(value) ? '---' : (''+value.toFixed(5)); 
+        document.getElementById(id).textContent = s;
     }
     function showStatistics(sim)
     {
-        settextvalue('speed',sim.getSpeed());
-        settextvalue('radius',sim.getRadius());
-        settextvalue('angmomentum',sim.getAngularMomentum());
-        settextvalue('eccentricity',sim.getEccentricity());
-        var ke = sim.getKineticEnergy();
-        var pe = sim.getPotentialEnergy();
+        var stats = sim.getStatistics();
+        settextvalue('speed',stats.speed);
+        settextvalue('radius',stats.radius);
+        settextvalue('minradius',stats.minRadius);
+        settextvalue('maxradius',stats.maxRadius);
+        settextvalue('angmomentum',stats.angularMomentum);
+        settextvalue('eccentricity',stats.eccentricity);
+        var ke = stats.kineticEnergy;
+        var pe = stats.potentialEnergy;
         settextvalue('total energy',ke+pe);
+        settextvalue('period',stats.period);
     }
     setInterval(function() {
         ++tick;
         gravity1.thruster(keystate,k*dtsim);
         for (var i = 0; i < k; ++i)
             gravity1.update(dtsim);
-        gravity1.draw(canvas);
+        var blink = (tick & 7) > 1;
+        gravity1.draw(canvas, blink);
         var ctx = canvas.getContext('2d');
         ctx.strokeStyle = '#ff0000';
         gravity1.drawOrbitPath(canvas);
         ctx.stroke();
         showStatistics(gravity1);
     }, 1000/fps)
+    var form = document.forms['options'];
+    for (var i = 0; i < form.solver.length; ++i)
+    {
+        form.solver[i].addEventListener('change', function(event) {
+            gravity1.solver = event.target.value;
+         });
+    }
 }
 </script>
 </head>
@@ -57,12 +78,21 @@ window.onload = function() {
     <div>
     <canvas id="gravity1-canvas" height="480" width="640" />
     </div>
-    <div>
+    <div id='statistics'>
         <p>Speed = <span id='speed'></span></p>
         <p>Radius = <span id='radius'></span></p>
+        <p>Min radius = <span id='minradius'></span></p>
+        <p>Max radius = <span id='maxradius'></span></p>
+        <p>Period = <span id='period'></span></p>
         <p>Angular momentum = <span id='angmomentum'></span></p>
         <p>Eccentricity = <span id='eccentricity'></span></p>
         <p>Total energy = <span id='total energy'></span></p>
+    </div>
+    <div id='optionsForm'>
+        <form name='options'>
+            <input type="radio" name="solver" value="Euler" />Euler<br>
+            <input type="radio" name="solver" value="Trapezoidal" />Trapezoidal
+        </form>
     </div>
 </body>
 </html>

@@ -6,6 +6,7 @@ function Gravity1Simulation()
     this.solver = 'Trapezoidal';
     this.initialEnergy = 1+this.getKineticEnergy() + this.getPotentialEnergy();
     this.thrusterstrength = 0.05;
+    this.krhowarp = 0;
 }
 
 function weightedsum(A,x,len)
@@ -23,7 +24,22 @@ function weightedsum(A,x,len)
     }
     return result;
 }
-
+function arrowpath(ctx,x,y,dx,dy)
+{
+    ctx.moveTo(x,y);
+    var d = hypot(dx,dy);
+    if (d > 1e-9)
+    {
+      var ux=dx/d;
+      var uy=dy/d;
+      ctx.lineTo(x+dx,y+dy);
+      var hw = 5;
+      var hl = 10;
+      ctx.lineTo(x+dx-hw*uy-hl*ux,y+dy+hw*ux-hl*uy);
+      ctx.lineTo(x+dx,y+dy);
+      ctx.lineTo(x+dx+hw*uy-hl*ux,y+dy-hw*ux-hl*uy);
+    }
+}
 function dotpath(ctx,x,y,r)
 {
     ctx.arc(x, y, r, 0, 2 * Math.PI, false);
@@ -57,14 +73,28 @@ Gravity1Simulation.prototype =
     },
     thruster: function(keymap, dt)
     {
+        var ax = 0;
+        var ay = 0;
         if (keymap.up)
-            this.velpos[1] += this.thrusterstrength * dt;
+            ay += this.thrusterstrength;
         if (keymap.down)
-            this.velpos[1] -= this.thrusterstrength * dt;
+            ay -= this.thrusterstrength;
         if (keymap.right)
-            this.velpos[0] += this.thrusterstrength * dt;
+            ax += this.thrusterstrength;
         if (keymap.left)
-            this.velpos[0] -= this.thrusterstrength * dt;
+            ax -= this.thrusterstrength;
+        if (keymap['E-'])
+        {
+            ax -= this.velpos[2];
+            ay -= this.velpos[3];
+        }
+        if (keymap['E+'])
+        {
+            ax += this.velpos[2];
+            ay += this.velpos[3];
+        }
+        this.velpos[0] += ax*dt;
+        this.velpos[1] += ay*dt;
     },
     solvers: { 
         'Euler': function(vx, f, dt)
@@ -80,6 +110,37 @@ Gravity1Simulation.prototype =
             var dvxdt2 = f(vx1);
             return weightedsum([1,dt/2,dt/2], [vx,dvxdt1,dvxdt2], 4);
         }
+    },
+    getStatistics: function() {
+        var result = {};
+        result.radius = this.getRadius();
+        result.kineticEnergy = this.getKineticEnergy();
+        var mu = this.mu;
+        result.potentialEnergy = -mu/result.radius;
+        result.speed = Math.sqrt(2*result.kineticEnergy);
+        result.angularMomentum = this.getAngularMomentum();
+        var h = result.angularMomentum;
+        var r = result.radius;
+        var mu_e = [this.velpos[1]*h  - mu/r*this.velpos[2],
+                    -this.velpos[0]*h - mu/r*this.velpos[3]];
+        var e = hypot(mu_e[0],mu_e[1])/mu;
+        var p = h*h/mu;
+        result.eccentricity = e;
+        result.minRadius = p/(1+e);
+        if (e < 1)
+        {
+            var a = p/(1-e*e);
+            result.semimajorAxis = a;
+            result.maxRadius = p/(1-e);
+            result.period = 2*Math.PI*Math.sqrt(a*a*a/mu);
+        }
+        else
+        {
+            result.period = NaN;
+            result.semimajorAxis = NaN;
+            result.maxRadius = NaN;
+        }
+        return result;
     },
     getRadius: function() {
         return hypot(this.velpos[2],this.velpos[3]);
@@ -101,7 +162,7 @@ Gravity1Simulation.prototype =
                     -this.velpos[0]*h - mu/r*this.velpos[3]];
         return hypot(mu_e[0],mu_e[1])/mu;     
     },
-    draw: function(canvas)
+    draw: function(canvas, blink)
     {
         var ctx = canvas.getContext('2d');
         var cw = canvas.width;
@@ -115,14 +176,53 @@ Gravity1Simulation.prototype =
         ctx.fillRect(0,0,cw,ch);
         
         ctx.fillStyle = '#ffffff';        
+        // draw star
         ctx.beginPath();
         dotpath(ctx, cw/2,ch/2,5);
         ctx.fill();        
 
+        // draw satellite
         ctx.beginPath();
-        dotpath(ctx,x1,y1,2);
-        ctx.fill();  
-        
+        if (x1 > 0 && x1 < cw && y1 > 0 && y1 < ch)
+        { 
+           dotpath(ctx,x1,y1,2);
+           ctx.fill();  
+           ctx.beginPath()
+           ctx.strokeStyle = '#00ff80';
+           var vscale = rmax*0.5;
+           arrowpath(ctx,x1,y1,vscale*this.velpos[0],-vscale*this.velpos[1]);
+           ctx.stroke();
+        }
+        else
+        {
+            if (blink)
+            {
+                var marg = 5;
+                var alen = 30;
+                var mw = cw/2 - marg;
+                var mh = ch/2 - marg;
+                var x2 = x1 - cw/2;
+                var y2 = y1 - ch/2;
+                var ax2 = Math.abs(x2);
+                var ay2 = Math.abs(y2);
+                var r = hypot(x2,y2);
+                var k = 1;
+              
+                if (ax2 > mw)
+                    k = mw/ax2;
+                if (ay2 > mh)
+                    k = Math.min(k,mh/ay2);
+                ctx.beginPath();
+                ctx.strokeStyle = '#ffffff';
+                var x3 = cw/2+k*x2;
+                var y3 = ch/2+k*y2;
+                var tx = x2/r*alen;
+                var ty = y2/r*alen;
+                arrowpath(ctx, x3-tx, y3-ty, tx,ty);
+                ctx.stroke();
+            }
+        }
+          
         var e0=0.2 / this.initialEnergy;
         var ke=e0*this.getKineticEnergy();
         var pe=e0*this.getPotentialEnergy();
@@ -162,11 +262,11 @@ Gravity1Simulation.prototype =
             var rk = 2*rmax+rc;
             var cx = cw/2 + rc*Math.cos(th_c);
             var cy = ch/2 - rc*Math.sin(th_c);
-            ctx.moveTo(cx + rk*Math.cos(th_c-th_d),
+            /*ctx.moveTo(cx + rk*Math.cos(th_c-th_d),
                        cy - rk*Math.sin(th_c-th_d));
             ctx.lineTo(cx,cy);
             ctx.lineTo(cx + rk*Math.cos(th_c+th_d),
-                       cy - rk*Math.sin(th_c+th_d));
+                       cy - rk*Math.sin(th_c+th_d));*/
         }
         else if (e > 0.05)
         {
@@ -187,22 +287,24 @@ Gravity1Simulation.prototype =
             var y = ch/2 - rmax*ry;
             return [x,y];
         }
-        var N = 16;
+        var N = 64;
+        var e1 = Math.min(e,0.7);
+        var e2 = 1-Math.sqrt(1-e1*e1);
         for (var i = 0; i <= N; ++i)
         {   
             var rho = i / N;
-            var rhowarp = rho - 0.04*Math.sin(2*Math.PI*rho);
+            // this seems to work... :/
+            var drho = 0.5*e2*Math.sin(2*Math.PI*rho);
+            var rhowarp = rho - drho + drho*drho - drho*drho*drho;
             var th_i = th_start + rhowarp*(th_stop-th_start);
             var xy = f(th_i);
-            /*if (i == 0)
+            if (i == 0)
             {
                 ctx.moveTo(xy[0],xy[1]);
-                dotpath(ctx,xy[0],xy[1],2);
             }
             else
                 ctx.lineTo(xy[0],xy[1]);
-            if (i == N)*/
-                dotpath(ctx,xy[0],xy[1],2);
+            //    dotpath(ctx,xy[0],xy[1],2);
         }
     }
 }
