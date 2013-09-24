@@ -40,7 +40,7 @@ window.onload = function() {
         if (modkey(event, false)) {  event.preventDefault(true); return false;} });
     function settextvalue(id,value)
     {
-        var s = isNaN(value) ? '---' : (''+value.toFixed(5)); 
+        var s = isNaN(value) ? '---' : (''+value.toFixed(6)); 
         document.getElementById(id).textContent = s;
     }
     function showStatistics(sim)
@@ -98,6 +98,7 @@ window.onload = function() {
         <form name='options'>
             <input type="radio" name="solver" value="Euler" />Euler<br>
             <input type="radio" name="solver" value="Trapezoidal" />Trapezoidal
+            <input type="radio" name="solver" value="Runge-Kutta" />Runge-Kutta
         </form>
     </div>
 </body>

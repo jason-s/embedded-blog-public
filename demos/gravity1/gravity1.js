@@ -79,6 +79,20 @@ Gravity1Simulation.prototype =
         console.log(keymap);
         if (keymap.shift)
         {
+        }
+        else if (keymap.alt)
+        {
+            if (keymap.up)
+                ay += K;
+            if (keymap.down)
+                ay -= K;
+            if (keymap.right)
+                ax += K;
+            if (keymap.left)
+                ax -= K;
+        }
+        else
+        {
             var v = hypot(this.velpos[0],this.velpos[1]);
             if (v > 1e-6)
             {
@@ -106,30 +120,6 @@ Gravity1Simulation.prototype =
                 }
             }
         }
-        else if (keymap.alt)
-        {
-        }
-        else
-        {
-            if (keymap.up)
-                ay += K;
-            if (keymap.down)
-                ay -= K;
-            if (keymap.right)
-                ax += K;
-            if (keymap.left)
-                ax -= K;
-        }
-        if (keymap['E-'])
-        {
-            ax -= this.velpos[2];
-            ay -= this.velpos[3];
-        }
-        if (keymap['E+'])
-        {
-            ax += this.velpos[2];
-            ay += this.velpos[3];
-        }
         this.velpos[0] += ax*dt;
         this.velpos[1] += ay*dt;
     },
@@ -146,6 +136,18 @@ Gravity1Simulation.prototype =
             var vx1 = weightedsum([1,dt], [vx,dvxdt1], 4);
             var dvxdt2 = f(vx1);
             return weightedsum([1,dt/2,dt/2], [vx,dvxdt1,dvxdt2], 4);
+        },
+        'Runge-Kutta': function(vx, f, dt)
+        {
+            var dvxdt1 = f(vx);
+            var vx1 = weightedsum([1,dt/2], [vx,dvxdt1], 4);
+            var dvxdt2 = f(vx1);
+            var vx2 = weightedsum([1,dt/2], [vx,dvxdt2], 4);
+            var dvxdt3 = f(vx2);
+            var vx3 = weightedsum([1,dt], [vx,dvxdt3], 4);
+            var dvxdt4 = f(vx3);            
+            return weightedsum([1,dt/6,dt/3,dt/3,dt/6], 
+                [vx,dvxdt1,dvxdt2,dvxdt3,dvxdt4], 4);
         }
     },
     getStatistics: function() {
