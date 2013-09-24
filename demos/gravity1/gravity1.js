@@ -75,14 +75,51 @@ Gravity1Simulation.prototype =
     {
         var ax = 0;
         var ay = 0;
-        if (keymap.up)
-            ay += this.thrusterstrength;
-        if (keymap.down)
-            ay -= this.thrusterstrength;
-        if (keymap.right)
-            ax += this.thrusterstrength;
-        if (keymap.left)
-            ax -= this.thrusterstrength;
+        var K = this.thrusterstrength;
+        console.log(keymap);
+        if (keymap.shift)
+        {
+            var v = hypot(this.velpos[0],this.velpos[1]);
+            if (v > 1e-6)
+            {
+                var ux = this.velpos[0]/v;
+                var uy = this.velpos[1]/v;
+                if (keymap.up)
+                {
+                    ax += K*ux;
+                    ay += K*uy;
+                }
+                if (keymap.down)
+                {
+                    ay -= K*ux;
+                    ay -= K*uy;
+                }
+                if (keymap.right)
+                {
+                    ax += K*uy;
+                    ay -= K*ux;
+                }
+                if (keymap.left)
+                {
+                    ax -= K*uy;
+                    ay += K*ux;
+                }
+            }
+        }
+        else if (keymap.alt)
+        {
+        }
+        else
+        {
+            if (keymap.up)
+                ay += K;
+            if (keymap.down)
+                ay -= K;
+            if (keymap.right)
+                ax += K;
+            if (keymap.left)
+                ax -= K;
+        }
         if (keymap['E-'])
         {
             ax -= this.velpos[2];

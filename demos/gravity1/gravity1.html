@@ -18,9 +18,13 @@ window.onload = function() {
     var k = 16;
     var dtsim = 1.0/k/fps;
     var keymap = {37: 'left', 38: 'up', 39: 'right', 40: 'down', 73: 'e+', 74:'E-', 75:'e-', 76:'E+'};
-    var keystate = {'up':false, 'down':false, 'left':false, 'right':false, 'e+':false, 'e-': false, 'E+':false, 'E-':false};
-    function modkey(keycode,isdown)
+    var keystate = {'up':false, 'down':false, 'left':false, 'right':false, 'e+':false, 'e-': false, 'E+':false, 'E-':false, 'shift':false, 'alt':false, 'ctrl':false};
+    function modkey(event,isdown)
     {
+        var keycode = event.keyCode;
+        keystate['shift'] = event.shiftKey;
+        keystate['ctrl'] = event.ctrlKey;
+        keystate['alt'] = event.altKey;
         if (keycode in keymap)
         {
             keystate[keymap[keycode]] = isdown;
@@ -30,8 +34,10 @@ window.onload = function() {
         else
             return false;
     }    
-    document.addEventListener('keydown',function(event) { if (modkey(event.keyCode, true)) { event.preventDefault(true); return false;} });
-    document.addEventListener('keyup',function(event) { if (modkey(event.keyCode, false)) {  event.preventDefault(true); return false;} });
+    document.addEventListener('keydown',function(event) { 
+        if (modkey(event, true)) { event.preventDefault(true); return false;} });
+    document.addEventListener('keyup',function(event) { 
+        if (modkey(event, false)) {  event.preventDefault(true); return false;} });
     function settextvalue(id,value)
     {
         var s = isNaN(value) ? '---' : (''+value.toFixed(5)); 
