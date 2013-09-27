@@ -17,8 +17,9 @@ window.onload = function() {
     var tick = 0;
     var k = 16;
     var dtsim = 1.0/k/fps;
-    var keymap = {37: 'left', 38: 'up', 39: 'right', 40: 'down', 73: 'e+', 74:'E-', 75:'e-', 76:'E+'};
-    var keystate = {'up':false, 'down':false, 'left':false, 'right':false, 'e+':false, 'e-': false, 'E+':false, 'E-':false, 'shift':false, 'alt':false, 'ctrl':false};
+    var keymap = {37: 'left', 38: 'up', 39: 'right', 40: 'down', 73: 'e+', 74:'E-', 75:'e-', 76:'E+', 107:'+', 109:'-'};
+    var keystate = {'up':false, 'down':false, 'left':false, 'right':false, 'e+':false, 'e-': false, 'E+':false, 'E-':false, 'shift':false, 'alt':false, 'ctrl':false, '+':false, '-':false};
+    var keypress = {};
     function modkey(event,isdown)
     {
         var keycode = event.keyCode;
@@ -27,12 +28,19 @@ window.onload = function() {
         keystate['alt'] = event.altKey;
         if (keycode in keymap)
         {
-            keystate[keymap[keycode]] = isdown;
-            //console.log(keystate);
+            var m = keymap[keycode];
+            var prevstate = keystate[m];
+            keystate[m] = isdown;
+            if (isdown && !prevstate)
+                keypress[m] = true; 
+            console.log(keystate,keypress);
             return true;
         }
         else
+        {
+            console.log(keycode, isdown);
             return false;
+        }
     }    
     document.addEventListener('keydown',function(event) { 
         if (modkey(event, true)) { event.preventDefault(true); return false;} });
@@ -59,7 +67,9 @@ window.onload = function() {
     }
     setInterval(function() {
         ++tick;
-        gravity1.thruster(keystate,k*dtsim);
+        gravity1.updateControls(keystate,keypress);
+        keypress = {};
+        
         for (var i = 0; i < k; ++i)
             gravity1.update(dtsim);
         var blink = (tick & 7) > 1;

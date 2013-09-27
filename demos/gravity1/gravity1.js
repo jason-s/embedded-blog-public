@@ -6,7 +6,9 @@ function Gravity1Simulation()
     this.solver = 'Trapezoidal';
     this.initialEnergy = 1+this.getKineticEnergy() + this.getPotentialEnergy();
     this.thrusterstrength = 0.05;
+    this.thrusterAcceleration = [0,0];
     this.krhowarp = 0;
+    this.drawScale = 0;
 }
 
 function weightedsum(A,x,len)
@@ -56,27 +58,42 @@ function drawbar(ctx,x0,dx,height,hmargin,e)
 Gravity1Simulation.prototype = 
 {
     // 4-vector containing velx, vely, posx, posy
-    calcDerivative: function(vx)
+    calcDerivative: function(vx, etc)
     {
         var r = hypot(vx[2],vx[3])
+        // Acceleration w/o additional force:
         // |a| = F/M2 = 1/M2*(M1*M2*G/r/r) = M1*G/r/r
         // a = -|a|*x/|x| = -|a|*x/r
         var k = -this.mu/r/r/r;
-        return [k*vx[2],k*vx[3],vx[0],vx[1]]; 
+        var ax = k*vx[2] + etc.thrusterAcceleration[0];
+        var ay = k*vx[3] + etc.thrusterAcceleration[1];
+        return [ax,ay,vx[0],vx[1]]; 
     },
     update: function(dt)
     {
         var S = this.solvers[this.solver];
         var me = this;
-        var f = function(vx) { return me.calcDerivative(vx); }
+        var etc = {thrusterAcceleration: this.thrusterAcceleration};
+        var f = function(vx) { return me.calcDerivative(vx, etc); }
         this.velpos = S(this.velpos, f, dt);
     },
-    thruster: function(keymap, dt)
+    updateControls: function(keystate, keypress)
+    {
+        newScale = this.drawScale;
+        if (keypress['-'])
+            ++newScale;
+        if (keypress['+'])
+            --newScale;
+        newScale = Math.min(20,Math.max(0,newScale));
+        
+        this.thruster(keystate);
+        this.drawScale = newScale;
+    },
+    thruster: function(keymap)
     {
         var ax = 0;
         var ay = 0;
         var K = this.thrusterstrength;
-        console.log(keymap);
         if (keymap.shift)
         {
         }
@@ -120,8 +137,7 @@ Gravity1Simulation.prototype =
                 }
             }
         }
-        this.velpos[0] += ax*dt;
-        this.velpos[1] += ay*dt;
+        this.thrusterAcceleration = [ax,ay];
     },
     solvers: { 
         'Euler': function(vx, f, dt)
@@ -201,12 +217,18 @@ Gravity1Simulation.prototype =
                     -this.velpos[0]*h - mu/r*this.velpos[3]];
         return hypot(mu_e[0],mu_e[1])/mu;     
     },
+    getDrawScaleFactor: function(cw,ch)
+    {
+        var s = this.drawScale;
+        var s2 = s >> 1;
+        return Math.min(cw,ch)/2 / (1 << s2) / (s & 1 ? 1.414 : 1);
+    },
     draw: function(canvas, blink)
     {
         var ctx = canvas.getContext('2d');
         var cw = canvas.width;
         var ch = canvas.height;
-        var rmax = Math.min(cw,ch)/2;
+        var rmax = this.getDrawScaleFactor(cw,ch);
         
         var x1 = cw/2 + rmax*this.velpos[2];
         var y1 = ch/2 - rmax*this.velpos[3];
@@ -279,7 +301,7 @@ Gravity1Simulation.prototype =
         var ctx = canvas.getContext('2d');
         var cw = canvas.width;
         var ch = canvas.height;
-        var rmax = Math.min(cw,ch)/2;
+        var rmax = this.getDrawScaleFactor(cw,ch);
 
         var h = this.getAngularMomentum();
         var r = this.getRadius();
