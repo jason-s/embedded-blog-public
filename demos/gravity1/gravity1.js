@@ -3,7 +3,7 @@ function Gravity1Simulation()
     this.mu = 0.5;  // M * G
     this.minR = 0.09;
     this.velpos = [0.4,-0.4,0.66,0.66];
-    this.solver = 'Trapezoidal';
+    this.solvername = 'Trapezoidal';
     this.initialEnergy = 1+this.getKineticEnergy() + this.getPotentialEnergy();
     this.thrusterstrength = 0.05;
     this.thrusterAcceleration = [0,0];
@@ -75,6 +75,18 @@ function xstep(vx,w)
     vx[2] += vx[0]*w;
     vx[3] += vx[1]*w;
 }
+function Solver(n,f)
+{
+    this.func = f;
+    this.n = n;
+}
+Solver.prototype =
+{
+    step: function(state,f,dt)
+    {
+        return this.func(state,f,dt);
+    }
+};
 
 Gravity1Simulation.prototype = 
 {
@@ -93,11 +105,13 @@ Gravity1Simulation.prototype =
     },
     update: function(dt)
     {
-        var S = this.solvers[this.solver];
+        var solver = this.solvers[this.solvername];
         var me = this;
         var etc = {thrusterAcceleration: this.thrusterAcceleration};
         var f = function(vx) { return me.calcDerivative(vx, etc); }
-        this.velpos = S(this.velpos, f, dt);
+        this.velpos = solver.step(this.velpos, f, dt);
+        // now one more time to ensure that the accel vector displays are up to date
+        f(this.velpos);
         this.gravityAcceleration = etc.gravity;
     },
     updateControls: function(keystate, keypress)
@@ -187,20 +201,20 @@ Gravity1Simulation.prototype =
     },
     solverNames: ['Euler', 'Trapezoidal', 'Runge-Kutta', 'Velocity Verlet', 'Position Verlet','Forest-Ruth'],
     solvers: { 
-        'Euler': function(vx, f, dt)
+        'Euler': new Solver(1, function(vx, f, dt)
         {
             var dvxdt = f(vx);
             return weightedsum([1,dt], [vx,dvxdt], 4);
             // vx + dt*dvxdt
-        },
-        'Trapezoidal': function(vx, f, dt)
+        }),
+        'Trapezoidal': new Solver(2, function(vx, f, dt)
         {
             var dvxdt1 = f(vx);
             var vx1 = weightedsum([1,dt], [vx,dvxdt1], 4);
             var dvxdt2 = f(vx1);
             return weightedsum([1,dt/2,dt/2], [vx,dvxdt1,dvxdt2], 4);
-        },
-        'Runge-Kutta': function(vx, f, dt)
+        }),
+        'Runge-Kutta': new Solver(4,function(vx, f, dt)
         {
             var dvxdt1 = f(vx);
             var vx1 = weightedsum([1,dt/2], [vx,dvxdt1], 4);
@@ -211,8 +225,8 @@ Gravity1Simulation.prototype =
             var dvxdt4 = f(vx3);            
             return weightedsum([1,dt/6,dt/3,dt/3,dt/6], 
                 [vx,dvxdt1,dvxdt2,dvxdt3,dvxdt4], 4);
-        },
-        'Velocity Verlet': function(vx0, f, dt)
+        }),
+        'Velocity Verlet': new Solver(1,function(vx0, f, dt)
         {  
             // assumes v=dx/dt
             var vx = vx0.slice(); // copy
@@ -224,8 +238,8 @@ Gravity1Simulation.prototype =
             // full step with position,
             // other half step with velocity
             return vx;
-        },
-        'Position Verlet': function(vx0, f, dt)
+        }),
+        'Position Verlet': new Solver(1,function(vx0, f, dt)
         {  
             // assumes v=dx/dt
             var vx = vx0.slice(); // copy
@@ -236,8 +250,8 @@ Gravity1Simulation.prototype =
             // full step with velocity,
             // other half step with position
             return vx;
-        },
-        'Forest-Ruth': function(vx0,f,dt)
+        }),
+        'Forest-Ruth': new Solver(3,function(vx0,f,dt)
         {
             // assumes v=dx/dt
             var k = 1/(2-Math.pow(2,1/3));
@@ -265,7 +279,7 @@ Gravity1Simulation.prototype =
             xstep(vx,k*dt/2);
             
             return vx;
-        }
+        })
     },
     getStatistics: function() {
         var result = {};

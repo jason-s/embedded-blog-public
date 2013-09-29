@@ -79,7 +79,7 @@ window.onload = function() {
         gravity1.updateControls(keystate,keypress);
         keypress = {};
         
-        var dtsim = 1.0/state.derivCalcRate;
+        var dtsim = gravity1.solvers[gravity1.solvername].n/state.derivCalcRate;
         while (state.tsim < state.t)
         {
             gravity1.update(dtsim);
@@ -95,7 +95,7 @@ window.onload = function() {
     }, 1000/fps)
     var form = document.forms['options'];
     var solverChange = function(event) {
-            gravity1.solver = event.target.value;
+            gravity1.solvername = event.target.value;
     };
     var solverDiv = document.getElementById('solvers');
     for (var i = 0; i < gravity1.solverNames.length; ++i)
@@ -105,13 +105,15 @@ window.onload = function() {
         rbtn.setAttribute('type','radio');
         rbtn.setAttribute('name','solver');
         rbtn.setAttribute('value',name);
+        if (gravity1.solvername == name)
+            rbtn.setAttribute('checked',true);
         rbtn.addEventListener('change',solverChange);
         solverDiv.appendChild(rbtn);
-        solverDiv.appendChild(document.createTextNode(name));
+        solverDiv.appendChild(document.createTextNode(name+' ('+gravity1.solvers[name].n+')'));
         solverDiv.appendChild(document.createElement('br'));
     }
     $(function() {
-      var derivRates = [10,12,15,18,22,27,33,39,47,56,68,82,100,120,150,180,220,270,330,390,470,560,680,820,1000];
+      var derivRates = [22,27,33,39,47,56,68,82,100,120,150,180,220,270,330,390,470,560];
       var N = derivRates.length;
       var rateChoice;
       function onSliderChange(event, ui) {
