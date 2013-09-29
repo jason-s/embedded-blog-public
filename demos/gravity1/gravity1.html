@@ -6,17 +6,25 @@
         padding: 0;
         margin: 0;
     }
+    form#options {
+        width: 640px;
+    }
+    div#rateSlider {
+        width: 400px;
+    }
 </style>
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+<script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
 <script type="text/javascript" src="gravity1.js" ></script>
+<link rel="stylesheet" href="gravity1.css" />
 <script type="text/javascript">
 window.onload = function() {
     var canvas = document.getElementById('gravity1-canvas');
     var gravity1 = new Gravity1Simulation();
     window.gravity1 = gravity1;
     var fps = 20;
-    var tick = 0;
-    var k = 16;
-    var dtsim = 1.0/k/fps;
+    var state = {tick: 0, t: 0, tsim: 0, derivCalcRate: 100};
     var keymap = {37: 'left', 38: 'up', 39: 'right', 40: 'down', 73: 'e+', 74:'E-', 75:'e-', 76:'E+', 107:'+', 109:'-'};
     var keystate = {'up':false, 'down':false, 'left':false, 'right':false, 'e+':false, 'e-': false, 'E+':false, 'E-':false, 'shift':false, 'alt':false, 'ctrl':false, '+':false, '-':false};
     var keypress = {};
@@ -66,13 +74,18 @@ window.onload = function() {
         settextvalue('period',stats.period);
     }
     setInterval(function() {
-        ++tick;
+        ++state.tick;
+        state.t += 1.0/fps;
         gravity1.updateControls(keystate,keypress);
         keypress = {};
         
-        for (var i = 0; i < k; ++i)
+        var dtsim = 1.0/state.derivCalcRate;
+        while (state.tsim < state.t)
+        {
             gravity1.update(dtsim);
-        var blink = (tick & 7) > 1;
+            state.tsim += dtsim;
+        }
+        var blink = (state.tick & 7) > 1;
         gravity1.draw(canvas, blink);
         var ctx = canvas.getContext('2d');
         ctx.strokeStyle = '#ff0000';
@@ -97,6 +110,25 @@ window.onload = function() {
         solverDiv.appendChild(document.createTextNode(name));
         solverDiv.appendChild(document.createElement('br'));
     }
+    $(function() {
+      var derivRates = [10,12,15,18,22,27,33,39,47,56,68,82,100,120,150,180,220,270,330,390,470,560,680,820,1000];
+      var N = derivRates.length;
+      var rateChoice;
+      function onSliderChange(event, ui) {
+            rateChoice = derivRates[ui.value];
+            state.derivCalcRate = rateChoice;
+            $("#rateDisplay").text(rateChoice);
+      }
+      onSliderChange(null, {value: N-1});
+      $( "#rateSlider" ).slider({
+        min: 0, max: N-1, step: 1, value: N-1,
+        change: onSliderChange,
+        slide: function( event, ui ) {
+            rateChoice = derivRates[ui.value];
+            $("#rateDisplay").html(state.derivCalcRate+" &rarr; "+rateChoice);
+        }
+      });
+    });
 }
 </script>
 </head>
@@ -116,7 +148,12 @@ window.onload = function() {
     </div>
     <div id='optionsForm'>
         <form name='options'>
-            <div id='solvers' />
+            <div id='solvers'>
+            </div>
+            <div id='updateRate'>  
+               <div>Acceleration calculations per second: <span id="rateDisplay" /></div>      
+               <div id="rateSlider" />
+            </div>
         </form>
     </div>
 </body>
