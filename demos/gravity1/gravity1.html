@@ -33,12 +33,12 @@ window.onload = function() {
             keystate[m] = isdown;
             if (isdown && !prevstate)
                 keypress[m] = true; 
-            console.log(keystate,keypress);
+            //console.log(keystate,keypress);
             return true;
         }
         else
         {
-            console.log(keycode, isdown);
+            //console.log(keycode, isdown);
             return false;
         }
     }    
@@ -48,7 +48,7 @@ window.onload = function() {
         if (modkey(event, false)) {  event.preventDefault(true); return false;} });
     function settextvalue(id,value)
     {
-        var s = isNaN(value) ? '---' : (''+value.toFixed(6)); 
+        var s = isNaN(value) ? '---' : (''+value.toFixed(7)); 
         document.getElementById(id).textContent = s;
     }
     function showStatistics(sim)
@@ -81,11 +81,21 @@ window.onload = function() {
         showStatistics(gravity1);
     }, 1000/fps)
     var form = document.forms['options'];
-    for (var i = 0; i < form.solver.length; ++i)
-    {
-        form.solver[i].addEventListener('change', function(event) {
+    var solverChange = function(event) {
             gravity1.solver = event.target.value;
-         });
+    };
+    var solverDiv = document.getElementById('solvers');
+    for (var i = 0; i < gravity1.solverNames.length; ++i)
+    {
+        var name = gravity1.solverNames[i];
+        var rbtn = document.createElement('input');
+        rbtn.setAttribute('type','radio');
+        rbtn.setAttribute('name','solver');
+        rbtn.setAttribute('value',name);
+        rbtn.addEventListener('change',solverChange);
+        solverDiv.appendChild(rbtn);
+        solverDiv.appendChild(document.createTextNode(name));
+        solverDiv.appendChild(document.createElement('br'));
     }
 }
 </script>
@@ -106,9 +116,7 @@ window.onload = function() {
     </div>
     <div id='optionsForm'>
         <form name='options'>
-            <input type="radio" name="solver" value="Euler" />Euler<br>
-            <input type="radio" name="solver" value="Trapezoidal" />Trapezoidal
-            <input type="radio" name="solver" value="Runge-Kutta" />Runge-Kutta
+            <div id='solvers' />
         </form>
     </div>
 </body>

@@ -26,7 +26,7 @@ function weightedsum(A,x,len)
     }
     return result;
 }
-function arrowpath(ctx,x,y,dx,dy)
+function arrowPath(ctx,x,y,dx,dy)
 {
     ctx.moveTo(x,y);
     var d = hypot(dx,dy);
@@ -35,8 +35,8 @@ function arrowpath(ctx,x,y,dx,dy)
       var ux=dx/d;
       var uy=dy/d;
       ctx.lineTo(x+dx,y+dy);
-      var hw = 5;
-      var hl = 10;
+      var hw = 3;
+      var hl = 6;
       ctx.lineTo(x+dx-hw*uy-hl*ux,y+dy+hw*ux-hl*uy);
       ctx.lineTo(x+dx,y+dy);
       ctx.lineTo(x+dx+hw*uy-hl*ux,y+dy-hw*ux-hl*uy);
@@ -54,6 +54,27 @@ function drawbar(ctx,x0,dx,height,hmargin,e)
     var ystart = dy > 0 ? height-hmargin-dy : hmargin;
     ctx.fillRect(x0,ystart,dx,dy > 0 ? dy : -dy);
 }
+function drawArrow(ctx,strokeStyle,x1,y1,k,dxy)
+{
+   ctx.beginPath();
+   ctx.strokeStyle = strokeStyle;
+   arrowPath(ctx,x1,y1,k*dxy[0],-k*dxy[1]);
+   ctx.stroke();
+}
+
+// Primitive operations for Verlet and Forest-Ruth
+
+function vstep(vx,f,w)
+{
+    var dvx = f(vx);
+    vx[0] += dvx[0]*w;
+    vx[1] += dvx[1]*w;
+}
+function xstep(vx,w)
+{
+    vx[2] += vx[0]*w;
+    vx[3] += vx[1]*w;
+}
 
 Gravity1Simulation.prototype = 
 {
@@ -65,8 +86,9 @@ Gravity1Simulation.prototype =
         // |a| = F/M2 = 1/M2*(M1*M2*G/r/r) = M1*G/r/r
         // a = -|a|*x/|x| = -|a|*x/r
         var k = -this.mu/r/r/r;
-        var ax = k*vx[2] + etc.thrusterAcceleration[0];
-        var ay = k*vx[3] + etc.thrusterAcceleration[1];
+        etc.gravity = [k*vx[2], k*vx[3]];
+        var ax = etc.gravity[0] + etc.thrusterAcceleration[0];
+        var ay = etc.gravity[1] + etc.thrusterAcceleration[1];
         return [ax,ay,vx[0],vx[1]]; 
     },
     update: function(dt)
@@ -76,6 +98,7 @@ Gravity1Simulation.prototype =
         var etc = {thrusterAcceleration: this.thrusterAcceleration};
         var f = function(vx) { return me.calcDerivative(vx, etc); }
         this.velpos = S(this.velpos, f, dt);
+        this.gravityAcceleration = etc.gravity;
     },
     updateControls: function(keystate, keypress)
     {
@@ -94,11 +117,9 @@ Gravity1Simulation.prototype =
         var ax = 0;
         var ay = 0;
         var K = this.thrusterstrength;
-        if (keymap.shift)
+        if (keymap.alt)
         {
-        }
-        else if (keymap.alt)
-        {
+            // Absolute orientation
             if (keymap.up)
                 ay += K;
             if (keymap.down)
@@ -108,37 +129,63 @@ Gravity1Simulation.prototype =
             if (keymap.left)
                 ax -= K;
         }
-        else
+        else 
         {
-            var v = hypot(this.velpos[0],this.velpos[1]);
-            if (v > 1e-6)
+            var ux = 0;
+            var uy = 0;
+            if (keymap.shift)
             {
-                var ux = this.velpos[0]/v;
-                var uy = this.velpos[1]/v;
-                if (keymap.up)
+                // Orientation relative to radius vector, 
+                // rotated 90 degrees relative to velocity
+                var r = this.getRadius();
+                ux = this.velpos[2]/r;
+                uy = this.velpos[3]/r;
+                var tmp = ux;
+                if (this.getAngularMomentum() < 0)
                 {
-                    ax += K*ux;
-                    ay += K*uy;
+                    ux = uy;
+                    uy = -tmp;
                 }
-                if (keymap.down)
+                else
                 {
-                    ay -= K*ux;
-                    ay -= K*uy;
+                    ux = -uy;
+                    uy = tmp;
                 }
-                if (keymap.right)
+            }
+            else
+            {
+                // Orientation relative to velocity
+                var v = this.getSpeed();
+                if (v > 1e-6)
                 {
-                    ax += K*uy;
-                    ay -= K*ux;
+                    var ux = this.velpos[0]/v;
+                    var uy = this.velpos[1]/v;
                 }
-                if (keymap.left)
-                {
-                    ax -= K*uy;
-                    ay += K*ux;
-                }
+            }
+            if (keymap.up)
+            {
+                ax += K*ux;
+                ay += K*uy;
+            }
+            if (keymap.down)
+            {
+                ax -= K*ux;
+                ay -= K*uy;
+            }
+            if (keymap.right)
+            {
+                ax += K*uy;
+                ay -= K*ux;
+            }
+            if (keymap.left)
+            {
+                ax -= K*uy;
+                ay += K*ux;
             }
         }
         this.thrusterAcceleration = [ax,ay];
     },
+    solverNames: ['Euler', 'Trapezoidal', 'Runge-Kutta', 'Velocity Verlet', 'Position Verlet','Forest-Ruth'],
     solvers: { 
         'Euler': function(vx, f, dt)
         {
@@ -164,6 +211,60 @@ Gravity1Simulation.prototype =
             var dvxdt4 = f(vx3);            
             return weightedsum([1,dt/6,dt/3,dt/3,dt/6], 
                 [vx,dvxdt1,dvxdt2,dvxdt3,dvxdt4], 4);
+        },
+        'Velocity Verlet': function(vx0, f, dt)
+        {  
+            // assumes v=dx/dt
+            var vx = vx0.slice(); // copy
+            vstep(vx,f,dt/2);
+            xstep(vx,dt);
+            vstep(vx,f,dt/2);
+            
+            // half step with velocity,
+            // full step with position,
+            // other half step with velocity
+            return vx;
+        },
+        'Position Verlet': function(vx0, f, dt)
+        {  
+            // assumes v=dx/dt
+            var vx = vx0.slice(); // copy
+            xstep(vx,dt/2);
+            vstep(vx,f,dt);
+            xstep(vx,dt/2);
+            // half step with position,
+            // full step with velocity,
+            // other half step with position
+            return vx;
+        },
+        'Forest-Ruth': function(vx0,f,dt)
+        {
+            // assumes v=dx/dt
+            var k = 1/(2-Math.pow(2,1/3));
+            var vx = vx0.slice();
+
+            // x += k*dt/2*v
+            xstep(vx,k*dt/2);
+
+            // v += k*dt*f(x)
+            vstep(vx,f,k*dt);
+
+            // x += (1-k)*dt/2*v
+            xstep(vx,(1-k)*dt/2);
+
+            // v += (1-2k)*dt*f(x)
+            vstep(vx,f,(1-2*k)*dt);
+
+            // x += (1-k)*dt/2*v
+            xstep(vx,(1-k)*dt/2);
+
+            // v += k*dt*f(x)
+            vstep(vx,f,k*dt);
+
+            // x += k*dt/2*v
+            xstep(vx,k*dt/2);
+            
+            return vx;
         }
     },
     getStatistics: function() {
@@ -248,11 +349,14 @@ Gravity1Simulation.prototype =
         { 
            dotpath(ctx,x1,y1,2);
            ctx.fill();  
-           ctx.beginPath()
-           ctx.strokeStyle = '#00ff80';
+
            var vscale = rmax*0.5;
-           arrowpath(ctx,x1,y1,vscale*this.velpos[0],-vscale*this.velpos[1]);
-           ctx.stroke();
+           drawArrow(ctx,'#00ff80',x1,y1,vscale,this.velpos);
+
+           var gscale = rmax*0.25;
+           drawArrow(ctx,'#0080ff',x1,y1,gscale,this.gravityAcceleration);
+           var tscale = rmax;
+           drawArrow(ctx,'#ffff80',x1,y1,tscale,this.thrusterAcceleration);
         }
         else
         {
@@ -279,7 +383,7 @@ Gravity1Simulation.prototype =
                 var y3 = ch/2+k*y2;
                 var tx = x2/r*alen;
                 var ty = y2/r*alen;
-                arrowpath(ctx, x3-tx, y3-ty, tx,ty);
+                arrowPath(ctx, x3-tx, y3-ty, tx,ty);
                 ctx.stroke();
             }
         }
