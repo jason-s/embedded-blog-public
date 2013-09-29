@@ -73,13 +73,17 @@ window.onload = function() {
         settextvalue('total energy',ke+pe);
         settextvalue('period',stats.period);
     }
+    function calcUpdateRate()
+    {
+        return state.derivCalcRate/gravity1.solvers[gravity1.solvername].n;
+    }
     setInterval(function() {
         ++state.tick;
         state.t += 1.0/fps;
         gravity1.updateControls(keystate,keypress);
         keypress = {};
         
-        var dtsim = gravity1.solvers[gravity1.solvername].n/state.derivCalcRate;
+        var dtsim = 1.0/calcUpdateRate();
         while (state.tsim < state.t)
         {
             gravity1.update(dtsim);
@@ -94,9 +98,14 @@ window.onload = function() {
         showStatistics(gravity1);
     }, 1000/fps)
     var form = document.forms['options'];
-    var solverChange = function(event) {
+    function displayUpdateRate()
+    {
+        $("#updateRateDisplay").text(calcUpdateRate().toFixed(1)+" Hz")
+    }
+    function solverChange(event) {
             gravity1.solvername = event.target.value;
-    };
+            displayUpdateRate();
+    }
     var solverDiv = document.getElementById('solvers');
     for (var i = 0; i < gravity1.solverNames.length; ++i)
     {
@@ -112,24 +121,24 @@ window.onload = function() {
         solverDiv.appendChild(document.createTextNode(name+' ('+gravity1.solvers[name].n+')'));
         solverDiv.appendChild(document.createElement('br'));
     }
-    $(function() {
-      var derivRates = [22,27,33,39,47,56,68,82,100,120,150,180,220,270,330,390,470,560];
-      var N = derivRates.length;
-      var rateChoice;
-      function onSliderChange(event, ui) {
-            rateChoice = derivRates[ui.value];
-            state.derivCalcRate = rateChoice;
-            $("#rateDisplay").text(rateChoice);
-      }
-      onSliderChange(null, {value: N-1});
-      $( "#rateSlider" ).slider({
-        min: 0, max: N-1, step: 1, value: N-1,
-        change: onSliderChange,
-        slide: function( event, ui ) {
-            rateChoice = derivRates[ui.value];
-            $("#rateDisplay").html(state.derivCalcRate+" &rarr; "+rateChoice);
-        }
-      });
+    var derivRates = [22,27,33,39,47,56,68,82,100,120,150,180,220,270,330,390,470,560,680,820,1000,1200,1500];
+    var N = derivRates.length;
+    var rateChoice;
+    function onSliderChange(event, ui) {
+        rateChoice = derivRates[ui.value];
+        state.derivCalcRate = rateChoice;
+        $("#rateDisplay").text(rateChoice);
+        displayUpdateRate();
+    }
+    var initValue = N-5;
+    onSliderChange(null, {value: initValue});
+    $( "#rateSlider" ).slider({
+    min: 0, max: N-1, step: 1, value: initValue,
+    change: onSliderChange,
+    slide: function( event, ui ) {
+        rateChoice = derivRates[ui.value];
+        $("#rateDisplay").html(state.derivCalcRate+" &rarr; "+rateChoice);
+    }
     });
 }
 </script>
@@ -153,6 +162,7 @@ window.onload = function() {
             <div id='solvers'>
             </div>
             <div id='updateRate'>  
+               <div>Update rate: <span id="updateRateDisplay" /></div>
                <div>Acceleration calculations per second: <span id="rateDisplay" /></div>      
                <div id="rateSlider" />
             </div>
