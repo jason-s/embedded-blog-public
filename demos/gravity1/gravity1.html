@@ -1,11 +1,7 @@
 <html>
 <head>
 <style type="text/css">
-    div#statistics p {
-        font-family: sans-serif;
-        padding: 0;
-        margin: 0;
-    }
+   
     form#options {
         width: 640px;
     }
@@ -56,7 +52,7 @@ window.onload = function() {
         if (modkey(event, false)) {  event.preventDefault(true); return false;} });
     function settextvalue(id,value)
     {
-        var s = isNaN(value) ? '---' : (''+value.toFixed(7)); 
+        var s = isNaN(value) ? '---' : (''+value.toFixed(8)); 
         document.getElementById(id).textContent = s;
     }
     function showStatistics(sim)
@@ -77,9 +73,14 @@ window.onload = function() {
     {
         return state.derivCalcRate/gravity1.solvers[gravity1.solvername].n;
     }
+    var paused = false;
+
     setInterval(function() {
-        ++state.tick;
-        state.t += 1.0/fps;
+        if (!paused)
+        {
+            ++state.tick;
+            state.t += 1.0/fps;
+        }
         gravity1.updateControls(keystate,keypress);
         keypress = {};
         
@@ -106,11 +107,20 @@ window.onload = function() {
             gravity1.solvername = event.target.value;
             displayUpdateRate();
     }
-    var solverDiv = document.getElementById('solvers');
-    for (var i = 0; i < gravity1.solverNames.length; ++i)
+    function dcE(tag) { return document.createElement(tag); }
+    function createHref(text,href)
     {
-        var name = gravity1.solverNames[i];
-        var rbtn = document.createElement('input');
+        var a = dcE('a');
+        a.appendChild(document.createTextNode(text));
+        a.href = href;
+        return a;
+    }
+    var solverDiv = document.getElementById('solvers');
+    for (var i = 0; i < gravity1.solverList.length; ++i)
+    {
+        var solver = gravity1.solverList[i];
+        var name = solver.name;
+        var rbtn = dcE('input');
         rbtn.setAttribute('type','radio');
         rbtn.setAttribute('name','solver');
         rbtn.setAttribute('value',name);
@@ -118,8 +128,12 @@ window.onload = function() {
             rbtn.setAttribute('checked',true);
         rbtn.addEventListener('change',solverChange);
         solverDiv.appendChild(rbtn);
-        solverDiv.appendChild(document.createTextNode(name+' ('+gravity1.solvers[name].n+')'));
-        solverDiv.appendChild(document.createElement('br'));
+        if (solver.href != null)
+            solverDiv.appendChild(createHref(name, solver.href));
+        else
+            solverDiv.appendChild(document.createTextNode(name));
+        solverDiv.appendChild(document.createTextNode(' ('+solver.n+')'));
+        solverDiv.appendChild(dcE('br'));
     }
     var derivRates = [22,27,33,39,47,56,68,82,100,120,150,180,220,270,330,390,470,560,680,820,1000,1200,1500];
     var N = derivRates.length;
@@ -140,6 +154,7 @@ window.onload = function() {
         $("#rateDisplay").html(state.derivCalcRate+" &rarr; "+rateChoice);
     }
     });
+    $("#pausebox").change(function() { paused = this.checked; });
 }
 </script>
 </head>
@@ -148,14 +163,16 @@ window.onload = function() {
     <canvas id="gravity1-canvas" height="480" width="640" />
     </div>
     <div id='statistics'>
-        <p>Speed = <span id='speed'></span></p>
-        <p>Radius = <span id='radius'></span></p>
-        <p>Min radius = <span id='minradius'></span></p>
-        <p>Max radius = <span id='maxradius'></span></p>
-        <p>Period = <span id='period'></span></p>
-        <p>Angular momentum = <span id='angmomentum'></span></p>
-        <p>Eccentricity = <span id='eccentricity'></span></p>
-        <p>Total energy = <span id='total energy'></span></p>
+        <table>
+        <tr><td>Speed</td><td><span id='speed'></span></td></tr>
+        <tr><td>Radius</td><td><span id='radius'></span></td></tr>
+        <tr><td>Min radius</td><td><span id='minradius'></span></td></tr>
+        <tr><td>Max radius</td><td><span id='maxradius'></span></td></tr>
+        <tr><td>Period</td><td><span id='period'></span></td></tr>
+        <tr><td>Angular momentum</td><td><span id='angmomentum'></span></td></tr>
+        <tr><td>Eccentricity</td><td><span id='eccentricity'></span></td></tr>
+        <tr><td>Total energy</td><td><span id='total energy'></span></td></tr>
+        </table>
     </div>
     <div id='optionsForm'>
         <form name='options'>
@@ -164,7 +181,10 @@ window.onload = function() {
             <div id='updateRate'>  
                <div>Update rate: <span id="updateRateDisplay" /></div>
                <div>Acceleration calculations per second: <span id="rateDisplay" /></div>      
-               <div id="rateSlider" />
+               <div id="rateSlider" ></div>
+               <div>
+               <input type="checkbox" id="pausebox">Pause</input>
+               </div>
             </div>
         </form>
     </div>

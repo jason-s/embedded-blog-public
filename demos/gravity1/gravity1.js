@@ -75,10 +75,12 @@ function xstep(vx,w)
     vx[2] += vx[0]*w;
     vx[3] += vx[1]*w;
 }
-function Solver(n,f)
+function Solver(name,f,n,href)
 {
+    this.name = name;
     this.func = f;
     this.n = n;
+    this.href = href;
 }
 Solver.prototype =
 {
@@ -199,22 +201,28 @@ Gravity1Simulation.prototype =
         }
         this.thrusterAcceleration = [ax,ay];
     },
-    solverNames: ['Euler', 'Trapezoidal', 'Runge-Kutta', 'Velocity Verlet', 'Position Verlet','Forest-Ruth'],
-    solvers: { 
-        'Euler': new Solver(1, function(vx, f, dt)
+    solverList: [ 
+        new Solver('Euler', function(vx, f, dt)
         {
             var dvxdt = f(vx);
             return weightedsum([1,dt], [vx,dvxdt], 4);
             // vx + dt*dvxdt
-        }),
-        'Trapezoidal': new Solver(2, function(vx, f, dt)
+        }, 1, 'http://en.wikipedia.org/wiki/Euler_method'),
+        new Solver('Trapezoidal', function(vx, f, dt)
         {
             var dvxdt1 = f(vx);
             var vx1 = weightedsum([1,dt], [vx,dvxdt1], 4);
             var dvxdt2 = f(vx1);
             return weightedsum([1,dt/2,dt/2], [vx,dvxdt1,dvxdt2], 4);
-        }),
-        'Runge-Kutta': new Solver(4,function(vx, f, dt)
+        }, 2, 'http://en.wikipedia.org/wiki/Heun%27s_method'),
+        new Solver('Midpoint', function(vx, f, dt)
+        {
+            var dvxdt1 = f(vx);
+            var vxmid = weightedsum([1,dt/2], [vx,dvxdt1], 4);
+            var dvxdt2 = f(vxmid);
+            return weightedsum([1,dt], [vx,dvxdt2], 4);
+        }, 2, 'http://en.wikipedia.org/wiki/Midpoint_method'),
+        new Solver('Runge-Kutta',function(vx, f, dt)
         {
             var dvxdt1 = f(vx);
             var vx1 = weightedsum([1,dt/2], [vx,dvxdt1], 4);
@@ -225,8 +233,16 @@ Gravity1Simulation.prototype =
             var dvxdt4 = f(vx3);            
             return weightedsum([1,dt/6,dt/3,dt/3,dt/6], 
                 [vx,dvxdt1,dvxdt2,dvxdt3,dvxdt4], 4);
-        }),
-        'Velocity Verlet': new Solver(1,function(vx0, f, dt)
+        },4,'http://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_method#The_Runge.E2.80.93Kutta_method'),
+        new Solver('Semi-implicit Euler', function(vx0, f, dt)
+        {
+            // assumes v=dx/dt
+            var vx = vx0.slice()
+            vstep(vx,f,dt);
+            xstep(vx,dt);
+            return vx;
+        }, 1, 'http://en.wikipedia.org/wiki/Semi-implicit_Euler_method'),
+        new Solver('Velocity Verlet',function(vx0, f, dt)
         {  
             // assumes v=dx/dt
             var vx = vx0.slice(); // copy
@@ -238,8 +254,8 @@ Gravity1Simulation.prototype =
             // full step with position,
             // other half step with velocity
             return vx;
-        }),
-        'Position Verlet': new Solver(1,function(vx0, f, dt)
+        }, 1,'http://en.wikipedia.org/wiki/Velocity_Verlet#Velocity_Verlet'),
+        new Solver('Position Verlet',function(vx0, f, dt)
         {  
             // assumes v=dx/dt
             var vx = vx0.slice(); // copy
@@ -250,8 +266,8 @@ Gravity1Simulation.prototype =
             // full step with velocity,
             // other half step with position
             return vx;
-        }),
-        'Forest-Ruth': new Solver(3,function(vx0,f,dt)
+        }, 1),
+        new Solver('Forest-Ruth',function(vx0,f,dt)
         {
             // assumes v=dx/dt
             var k = 1/(2-Math.pow(2,1/3));
@@ -279,8 +295,8 @@ Gravity1Simulation.prototype =
             xstep(vx,k*dt/2);
             
             return vx;
-        })
-    },
+        }, 3, 'http://www.slac.stanford.edu/cgi-wrap/getdoc/slac-pub-5071.pdf')
+    ],
     getStatistics: function() {
         var result = {};
         result.radius = this.getRadius();
@@ -486,5 +502,14 @@ Gravity1Simulation.prototype =
             //    dotpath(ctx,xy[0],xy[1],2);
         }
     }
-}
+};
 
+(function(simproto) {
+    var solvers = {};
+    for (var i = 0; i < simproto.solverList.length; ++i)
+    {
+        var solver = simproto.solverList[i];
+        solvers[solver.name] = solver;
+    }
+    simproto.solvers = solvers;
+})(Gravity1Simulation.prototype);
