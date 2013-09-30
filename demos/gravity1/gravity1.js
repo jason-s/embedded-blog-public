@@ -1,3 +1,7 @@
+/*
+ * Gravity / Kepler orbit simulation. (c) Jason M. Sachs 
+ */
+
 function Gravity1Simulation()
 {
     this.paused = false;
