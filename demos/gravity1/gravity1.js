@@ -1,5 +1,7 @@
 function Gravity1Simulation()
 {
+    this.paused = false;
+    
     this.mu = 0.5;  // M * G
     this.minR = 0.09;
     this.velpos = [0.4,-0.4,0.66,0.66];
@@ -118,6 +120,8 @@ Gravity1Simulation.prototype =
     },
     updateControls: function(keystate, keypress)
     {
+        if (keypress[' '])
+            this.paused = !this.paused;
         newScale = this.drawScale;
         if (keypress['-'])
             ++newScale;

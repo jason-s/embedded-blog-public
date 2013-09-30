@@ -21,8 +21,8 @@ window.onload = function() {
     window.gravity1 = gravity1;
     var fps = 20;
     var state = {tick: 0, t: 0, tsim: 0, derivCalcRate: 100};
-    var keymap = {37: 'left', 38: 'up', 39: 'right', 40: 'down', 73: 'e+', 74:'E-', 75:'e-', 76:'E+', 107:'+', 109:'-'};
-    var keystate = {'up':false, 'down':false, 'left':false, 'right':false, 'e+':false, 'e-': false, 'E+':false, 'E-':false, 'shift':false, 'alt':false, 'ctrl':false, '+':false, '-':false};
+    var keymap = {37: 'left', 38: 'up', 39: 'right', 40: 'down', 73: 'e+', 74:'E-', 75:'e-', 76:'E+', 107:'+', 109:'-', 32:' '};
+    var keystate = {'up':false, 'down':false, 'left':false, 'right':false, 'e+':false, 'e-': false, 'E+':false, 'E-':false, 'shift':false, 'alt':false, 'ctrl':false, '+':false, '-':false, ' ':false};
     var keypress = {};
     function modkey(event,isdown)
     {
@@ -45,11 +45,20 @@ window.onload = function() {
             //console.log(keycode, isdown);
             return false;
         }
-    }    
-    document.addEventListener('keydown',function(event) { 
-        if (modkey(event, true)) { event.preventDefault(true); return false;} });
-    document.addEventListener('keyup',function(event) { 
-        if (modkey(event, false)) {  event.preventDefault(true); return false;} });
+    }   
+    var canvasFrame = document.getElementById('canvas-frame'); 
+    canvasFrame.addEventListener('keydown',function(event) { 
+        if (modkey(event, true)) { 
+            event.preventDefault(); 
+            return false;
+        }
+    }, true);
+    canvasFrame.addEventListener('keyup',function(event) { 
+        if (modkey(event, false)) {  
+            event.preventDefault(); 
+            return false;
+        }
+    }, true);
     function settextvalue(id,value)
     {
         var s = isNaN(value) ? '---' : (''+value.toFixed(8)); 
@@ -73,10 +82,11 @@ window.onload = function() {
     {
         return state.derivCalcRate/gravity1.solvers[gravity1.solvername].n;
     }
-    var paused = false;
 
+    var pausebox = $("#pausebox");
     setInterval(function() {
-        if (!paused)
+        pausebox.prop('checked', gravity1.paused);
+        if (!gravity1.paused)
         {
             ++state.tick;
             state.t += 1.0/fps;
@@ -154,13 +164,15 @@ window.onload = function() {
         $("#rateDisplay").html(state.derivCalcRate+" &rarr; "+rateChoice);
     }
     });
-    $("#pausebox").change(function() { paused = this.checked; });
+    $("#pausebox").change(function() { gravity1.paused = this.checked; });
 }
 </script>
 </head>
 <body>
     <div>
-    <canvas id="gravity1-canvas" height="480" width="640" />
+    <span id='canvas-frame' tabindex='1'>
+       <canvas id="gravity1-canvas" height="480" width="640" />
+    </span>
     </div>
     <div id='statistics'>
         <table>
@@ -187,6 +199,14 @@ window.onload = function() {
                </div>
             </div>
         </form>
+    </div>
+    <hr />
+    <div>
+    <p>This is a Kepler orbit simulator, showing the dynamics of a satellite around a planet or star, using a number of different solvers for differential equations. You can change the solver type used by clicking the radio buttons, and the calculation rate by changing the slider.</p>
+    <p>The differences between these solver types are described in detail in an article I wrote on the <a href="http://www.embeddedrelated.com/showarticle/474.php">embeddedrelated.com</a> website.</p>
+    <p>You can zoom in/out using the +/- keys, and alter the orbit with thrusters using the arrow keys. Arrow keys by themselves produce thrust relative to the satellite's trajectory; if you press SHIFT while using the arrow keys, it produces thrust relative to a circular orbit; if you press ALT (or OPTION on a Mac) while using the arrow keys, it produces thrust relative to the screen coordinates. (Before using any of the key controls, you need to place keyboard focus on the drawing above by clicking on it first.)</p>
+    <p>Have fun!</p>
+    <p>&mdash;Jason Sachs</p>
     </div>
 </body>
 </html>
