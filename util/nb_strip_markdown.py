@@ -41,7 +41,7 @@ def doit(infile, outfile, n):
     cells = get_code_cells(orig_cells)
     
     if not cells:
-        return False
+        return None
     title = find_title(orig_cells)
     copy_year = find_copyright_year(orig_cells)
     url = 'http://www.embeddedrelated.com/showarticle/%d.php' % n
@@ -71,7 +71,7 @@ limitations under the License.
     j['worksheets'][0]['cells'] = cells
     with open(outfile,'w') as f:
         json.dump(j, f)
-    return True
+    return title
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert ipython nb to strip out markdown')
@@ -80,10 +80,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
     filesre = re.compile('^(\d+)-.*\\.ipynb$')
     files = [f for f in os.listdir(args.indir) if filesre.match(f)]
+    published = []
     for file in files:
         m = filesre.match(file)
         n = int(m.group(1))
-        success = doit(infile=os.path.join(args.indir, file),
+        title = doit(infile=os.path.join(args.indir, file),
              outfile=os.path.join(args.outdir, file),
              n=n)
-        print '*' if success else ' ', n, file
+        if title:
+            published.append((n,title,file))
+        print '*' if title else ' ', n, file
+    for item in published:
+        print "- %05d [%s](http://nbviewer.ipython.org/url/bitbucket.org/jason_s/embedded-blog-public/raw/tip/notebooks/%s)" % item
+    
