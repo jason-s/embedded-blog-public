@@ -1,0 +1,1 @@
+python util/nb_strip_markdown.py ../repo/scripts notebooks
