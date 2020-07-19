@@ -17,6 +17,10 @@ typedef struct {
         volatile FIREPLACE *speedy;
         volatile FIREPLACE *poky;
     } access;
+
+    bool switch_request;  
+    // only Poky is allowed to set, 
+    // only Speedy is allowed to clear
 } RAW_SHARED_MEMORY; // w/o volatile -- do not use directly
 
 typedef volatile RAW_SHARED_MEMORY SHARED_MEMORY;

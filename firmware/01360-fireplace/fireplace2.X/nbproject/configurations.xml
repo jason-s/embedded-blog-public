@@ -22,6 +22,7 @@
       <itemPath>main.c</itemPath>
       <itemPath>mock_adc.c</itemPath>
       <itemPath>mock_uart.c</itemPath>
+      <itemPath>config.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

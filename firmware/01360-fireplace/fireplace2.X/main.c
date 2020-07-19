@@ -5,13 +5,14 @@
 #include "mock_adc.h"
 #include "mock_uart.h"
 
+SPEEDY_STATE speedy_state;
 POKY_STATE poky_state;
 SHARED_MEMORY shmem;
 volatile int16_t something = 0;
 
 void __attribute__((__interrupt__, no_auto_psv)) _T1Interrupt(void)
 {
-    speedy_step(&shmem);
+    speedy_step(&speedy_state, &shmem);
     IFS0bits.T1IF = 0; // acknowledge timer interrupt
 }
 
@@ -34,6 +35,7 @@ void initialize(void)
         
     // init software    
     poky_init(&poky_state, &shmem);
+    speedy_init(&speedy_state);
     init_adc();
     init_mock_uart();
     
@@ -82,7 +84,30 @@ void main_loop_step(void)
 {
     int k;
     
-    for (k = 0; k < 2000; ++k)
+    int ndelay;
+    
+    // somewhat erratic delays
+    // (mean of 1500 per iteration)
+    switch (iter_count & 7)
+    {
+        case 0:
+            ndelay = 7500;
+            break;
+        case 2:
+            ndelay = 4000;
+            break;
+        case 5:
+            ndelay = 400;
+            break;
+        case 6:
+            ndelay = 100;
+            break;
+        default:
+            ndelay = 0;
+            break;
+    }
+    
+    for (k = 0; k < ndelay; ++k)
     {
         __builtin_nop();
     }
@@ -93,11 +118,16 @@ void main_loop_step(void)
     
     // Point A
     uint16_t nspeedy0 = shmem.access.speedy->count;
+    volatile FIREPLACE *pspeedy_fp_before = shmem.access.speedy;
     poky_step(&poky_state, &shmem);
-    // poky has swapped fireplaces, 
-    // let's see what's happened since Point A
-    if (shmem.access.speedy->count > 0 || shmem.access.poky->count > nspeedy0)
-        ++close_collisions;
+    
+    if (shmem.access.speedy != pspeedy_fp_before)
+    {
+        // fireplaces have swapped 
+        // let's see what's happened since Point A
+        if (shmem.access.speedy->count > 0 || shmem.access.poky->count > nspeedy0)
+            ++close_collisions;
+    }
     
     if (end)
     {
