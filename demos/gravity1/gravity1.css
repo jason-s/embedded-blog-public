@@ -1,5 +1,8 @@
+html, body {
+    font-family: "Lucida Grande", "Segoe UI". Arial, sans-serif;
+}
+
 div#statistics table td {
     margin: 0px;
     padding: 0px 30px;
-    font-family: sans-serif;
 }
