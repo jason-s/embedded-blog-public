@@ -19,8 +19,15 @@ void initialize(void)
 {
     // init hardware
     
-
-    PR1 = 1000;
+    /* NOTE: This has NOT been completely configured
+     * for real hardware -- there are no config bits
+     * set, and the device PLL has not been initialized.
+     * 
+     * I have been testing just on the simulator.
+     */
+    
+    // Configure Timer1 for period of 1000
+    PR1 = 999;
     IEC0bits.T1IE = 1;
     INTCON2bits.GIE = 1;
     
@@ -36,8 +43,6 @@ void initialize(void)
 
 volatile uint16_t iter_count = 0;
 volatile uint16_t iter_count_end = 500;
-volatile bool tada = false;
-
 
 void verify_result(void)
 {
@@ -65,6 +70,8 @@ void verify_result(void)
 
     //  put a breakpoint on the following line
     ++something; 
+    __builtin_nop();
+    __builtin_software_breakpoint();
     
     volatile int optimizer_defeater = voltage_sum_expected + current_sum_expected;
 }
