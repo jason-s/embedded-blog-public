@@ -17,7 +17,9 @@
 <script type="text/javascript" src="gravity1.js" ></script>
 <link rel="stylesheet" type="text/css" href="gravity1.css" />
 <script type="text/javascript">
+console.log("running inline javascript....");
 window.addEventListener('DOMContentLoaded', function() {
+    console.log("DOMContentLoaded");
     var canvas = document.getElementById('gravity1-canvas');
     var gravity1 = new Gravity1Simulation();
     window.gravity1 = gravity1;
