@@ -16,7 +16,7 @@
 <script type="text/javascript" src="gravity1.js" ></script>
 <link rel="stylesheet" href="gravity1.css" />
 <script type="text/javascript">
-window.onload = function() {
+window.addEventListener('DOMContentLoaded', function() {
     var canvas = document.getElementById('gravity1-canvas');
     var gravity1 = new Gravity1Simulation();
     window.gravity1 = gravity1;
@@ -167,6 +167,7 @@ window.onload = function() {
     });
     $("#pausebox").change(function() { gravity1.paused = this.checked; });
 }
+);
 </script>
 </head>
 <body>
